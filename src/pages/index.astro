@@ -1,0 +1,274 @@
+---
+/**
+ * index.astro —— 首页
+ * ------------------------------------------------------------
+ *  结构：全屏背景 Hero → 四块轻度概览（影像 / 文字 / 图集 / 关于我）→ Footer
+ *   - 每块概览只露出一点，并在底部给一个"查看全部 →"入口跳到对应子页面。
+ *   - 每块都是真实作品：视频来自 works.js，文章来自 src/content/writings/*.md，
+ *     图片来自 public/images/。
+ *
+ * 【加作品】视频 / 图片 / 短句改 src/data/works.js；
+ *           文章往 src/content/writings/ 里加 .md（自动按日期排序）。
+ */
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Hero from '../components/Hero.astro';
+import VideoCard from '../components/VideoCard.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import QuoteCard from '../components/QuoteCard.astro';
+import ImageCard from '../components/ImageCard.astro';
+import Footer from '../components/Footer.astro';
+import { videos, quotes, photos, about } from '../data/works.js';
+
+// 文章：从 content 集合里读最新的 3 篇（md 文件在 src/content/writings/）
+const allWritings = await getCollection('writings');
+const TYPE_LABEL = { essay: '论述', poem: '诗歌', interview: '访谈' };
+const fmtDate = (d) =>
+  `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+
+const writingCards = allWritings
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3)
+  .map((w) => ({
+    title: w.data.title,
+    date: fmtDate(w.data.date),
+    period: w.data.period,
+    tag: TYPE_LABEL[w.data.type] || w.data.type,
+    excerpt: w.data.summary,
+    href: `/writings/${w.slug}`,
+  }));
+
+// 首页概览只各露一点：影像 3 条、文字 3 篇、短句 3 条、图集 4 张
+const videoPreview = videos.slice(0, 3);
+const quotePreview = quotes.slice(0, 3);
+const photoPreview = photos;
+---
+
+<Base>
+  <!-- ===================== 顶部：全屏背景 Hero ===================== -->
+  <Hero />
+
+  <main id="overview">
+    <!-- ===================== 区块一：影像概览 ===================== -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index">01</span>
+          <h2 class="section-title">影像</h2>
+          <span class="section-note">剪辑 · 短视频</span>
+        </div>
+        <div class="grid grid-3">
+          {videoPreview.map((v) => <VideoCard {...v} data-reveal />)}
+        </div>
+        <a class="section-more" href="/videos" data-reveal>
+          查看全部影像 <span class="section-more-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===================== 区块二：文字概览 ===================== -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index">02</span>
+          <h2 class="section-title">文字</h2>
+          <span class="section-note">论述 · 诗歌 · 访谈</span>
+        </div>
+
+        <div class="articles-layout">
+          <div class="grid grid-3">
+            {writingCards.map((a) => <ArticleCard {...a} data-reveal />)}
+          </div>
+          <div class="grid grid-3">
+            {quotePreview.map((q) => <QuoteCard {...q} data-reveal />)}
+          </div>
+        </div>
+
+        <a class="section-more" href="/writings" data-reveal>
+          查看全部文字 <span class="section-more-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===================== 区块三：图集概览 ===================== -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index">03</span>
+          <h2 class="section-title">图集</h2>
+          <span class="section-note">喜欢的图 · 处理习作</span>
+        </div>
+        <div class="grid grid-photo4">
+          {photoPreview.map((p) => <ImageCard {...p} data-reveal />)}
+        </div>
+        <a class="section-more" href="/photos" data-reveal>
+          查看全部图片 <span class="section-more-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===================== 区块四：关于我 ===================== -->
+    <!-- 内容全部来自 src/data/works.js 的 about：引子 / 标签 / 时间线 -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index">04</span>
+          <h2 class="section-title">{about.heading}</h2>
+          <span class="section-note">此刻与来路</span>
+        </div>
+
+        <div class="about-grid" data-reveal>
+          <div class="about-lead">
+            <p class="about-lead-text">{about.lead}</p>
+            <ul class="about-tags">
+              {about.profile.current.tags.map((t) => <li class="about-tag">{t}</li>)}
+            </ul>
+          </div>
+
+          <ol class="about-timeline">
+            {about.profile.timeline.items.map((it) => (
+              <li class="about-tl-item">
+                <span class="about-tl-year">{it.year}</span>
+                <span class="about-tl-text">{it.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <a class="section-more" href="/about" data-reveal>
+          了解更多 <span class="section-more-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== 底部联系方式 ===================== -->
+  <Footer />
+</Base>
+
+<style>
+  /* 图集概览：桌面端四列一字排开（正好 4 张） */
+  @media (min-width: 768px) {
+    .grid-photo4 {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+  }
+
+  /* 平板：两列，避免卡片过窄 */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .grid-photo4 {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+  }
+
+  /* ---------- 区块四：关于我 ---------- */
+  /* 手机：单列（文字在上，时间线在下）；桌面：左文右时间线 */
+  .about-grid {
+    display: grid;
+    gap: 32px;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .about-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+    }
+  }
+
+  .about-lead-text {
+    max-width: 30em;
+    font-size: 15px;
+    line-height: 2;
+    letter-spacing: 0.02em;
+    color: var(--text-soft);
+  }
+
+  /* 标签（chip）：与「关于我」页保持一致的小胶囊 */
+  .about-tags {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .about-tag {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--text-soft);
+  }
+
+  /* 迷你时间线：竖线 + 年份圆点（样式节奏沿用「关于我」页） */
+  .about-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .about-tl-item {
+    position: relative;
+    padding: 0 0 18px 22px;
+  }
+
+  .about-tl-item:last-child {
+    padding-bottom: 0;
+  }
+
+  .about-tl-item::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 16px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .about-tl-item:last-child::before {
+    display: none;
+  }
+
+  .about-tl-item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--bg);
+  }
+
+  .about-tl-year {
+    display: inline-block;
+    min-width: 3.4em;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .about-tl-text {
+    font-size: 13.5px;
+    line-height: 1.9;
+    color: var(--text-soft);
+  }
+
+  @media (max-width: 767px) {
+    .about-grid {
+      gap: 28px;
+    }
+
+    .about-lead-text {
+      font-size: 14.5px;
+    }
+  }
+</style>

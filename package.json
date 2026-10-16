@@ -1,0 +1,17 @@
+{
+  "name": "yangshao-portfolio",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "仰韶 · 个人作品集网站（Astro 单页静态站）",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^4.16.18"
+  }
+}

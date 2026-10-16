@@ -1,0 +1,195 @@
+---
+/**
+ * ArticleCard.astro —— 文章卡片
+ * ------------------------------------------------------------
+ *  用在文章列表页 / 首页：显示标题、日期、时期、类型标签、摘要。
+ *  给了 href 时，整张卡片就是链接（点进去看文章详情页 /writings/{slug}）。
+ */
+interface Props {
+  title: string;
+  date?: string;
+  period?: string;
+  tag?: string;
+  readTime?: string;
+  excerpt?: string;
+  paragraphs?: string[];
+  href?: string;
+}
+
+const { title, date, period, tag, readTime, excerpt, paragraphs, href, ...rest } = Astro.props;
+
+// 卡片右上角的 meta：日期 · 时期 · 阅读时长（有就显示，没有就跳过）
+const metaItems = [date, period, readTime].filter(Boolean);
+---
+
+{
+  href ? (
+    <a class="card article-card" href={href} data-cursor="阅读" {...rest}>
+      <div class="article-body">
+        {metaItems.length > 0 && (
+          <p class="article-meta">
+            {metaItems.map((m, i) => (
+              <>
+                {i > 0 && <span class="article-dot" aria-hidden="true">·</span>}
+                <span>{m}</span>
+              </>
+            ))}
+            {tag && <span class="article-tag">{tag}</span>}
+          </p>
+        )}
+
+        <h3 class="article-title">{title}</h3>
+
+        {excerpt && <p class="article-excerpt">{excerpt}</p>}
+
+        {paragraphs && (
+          <div class="article-text">
+            {paragraphs.map((p) => <p>{p}</p>)}
+          </div>
+        )}
+
+        <p class="article-more">阅读全文 <span aria-hidden="true">→</span></p>
+      </div>
+    </a>
+  ) : (
+    <article class="card article-card" {...rest}>
+      <div class="article-body">
+        {metaItems.length > 0 && (
+          <p class="article-meta">
+            {metaItems.map((m, i) => (
+              <>
+                {i > 0 && <span class="article-dot" aria-hidden="true">·</span>}
+                <span>{m}</span>
+              </>
+            ))}
+            {tag && <span class="article-tag">{tag}</span>}
+          </p>
+        )}
+
+        <h3 class="article-title">{title}</h3>
+
+        {excerpt && <p class="article-excerpt">{excerpt}</p>}
+
+        {paragraphs && (
+          <div class="article-text">
+            {paragraphs.map((p) => <p>{p}</p>)}
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}
+
+<style>
+  .article-card {
+    display: block;
+  }
+
+  .article-body {
+    padding: 30px 28px 32px;
+  }
+
+  .article-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 16px;
+  }
+
+  .article-dot {
+    color: var(--accent-dim);
+  }
+
+  .article-tag {
+    margin-left: 4px;
+    padding: 2px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 10.5px;
+    color: var(--text-soft);
+  }
+
+  .article-title {
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text);
+    transition: transform var(--dur-hover) var(--ease);
+  }
+
+  /* 悬停时标题颜色保持 --text，只向右轻移 2px（克制） */
+  .article-card:hover .article-title {
+    transform: translateX(2px);
+  }
+
+  .article-excerpt {
+    margin-top: 16px;
+    font-size: 14.5px;
+    line-height: 2;
+    color: var(--text-soft);
+    letter-spacing: 0.02em;
+  }
+
+  /* 正文段落：默认收起，悬停卡片时缓缓展开，保持卡片整洁 */
+  .article-text {
+    margin-top: 0;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      max-height 0.6s var(--ease),
+      opacity var(--dur-hover) var(--ease),
+      margin-top var(--dur-hover) var(--ease);
+  }
+
+  .article-text p {
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 2.05;
+    color: var(--text-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .article-card:hover .article-text,
+  .article-card:focus-within .article-text {
+    max-height: 1200px;
+    opacity: 1;
+    margin-top: 24px;
+  }
+
+  /* 「阅读全文 →」：默认很淡，悬停亮起 */
+  .article-more {
+    margin-top: 22px;
+    font-size: 11.5px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text-faint);
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .article-card:hover .article-more {
+    color: var(--accent);
+  }
+
+  @media (max-width: 767px) {
+    .article-body {
+      padding: 26px 22px 28px;
+    }
+
+    .article-title {
+      font-size: 19px;
+    }
+  }
+
+  /* 关闭动效时不做位移 */
+  @media (prefers-reduced-motion: reduce) {
+    .article-card:hover .article-title {
+      transform: none;
+    }
+  }
+</style>

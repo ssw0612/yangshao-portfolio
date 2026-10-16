@@ -1,0 +1,65 @@
+---
+/**
+ * writings.astro —— 文章列表页（路径 /writings）
+ * ------------------------------------------------------------
+ *  文章全部来自 src/content/writings/*.md（真实作品，不是假数据）。
+ *  按 date 降序排列；点卡片进入详情页 /writings/{slug}。
+ *  想加文章：往 src/content/writings/ 里丢一个 .md 即可，不用改这个文件。
+ */
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import QuoteCard from '../components/QuoteCard.astro';
+import { quotes } from '../data/works.js';
+
+// 读取全部文章，按日期从新到旧排序
+const all = await getCollection('writings');
+const sorted = all.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 类型 → 中文标签（md 里 type 写英文，页面显示中文）
+const TYPE_LABEL = { essay: '论述', poem: '诗歌', interview: '访谈' };
+
+// 日期格式化：2023-03-12 → 2023.03.12
+const fmtDate = (d) =>
+  `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+
+// 组装成卡片所需的数据（href 指向文章详情页）
+const cards = sorted.map((w) => ({
+  title: w.data.title,
+  date: fmtDate(w.data.date),
+  period: w.data.period,
+  tag: TYPE_LABEL[w.data.type] || w.data.type,
+  excerpt: w.data.summary,
+  href: `/writings/${w.slug}`,
+}));
+---
+
+<Base title="文章 · 仰韶" description="仰韶的文字作品：高中时期写下的论述、诗歌与访谈。">
+  <main>
+    <header class="page-head">
+      <div class="container">
+        <p class="page-eyebrow">WRITING</p>
+        <h1 class="page-title">文章</h1>
+        <p class="page-desc">
+          高二前后写下的一些论述、诗歌与访谈。写得早，现在看难免幼稚，但都是当时真实的想法。
+        </p>
+      </div>
+    </header>
+
+    <section class="page-body">
+      <div class="container">
+        <div class="articles-layout">
+          <!-- 文章卡片：点整张卡片进入详情页 -->
+          <div class="grid grid-2">
+            {cards.map((c) => <ArticleCard {...c} data-reveal />)}
+          </div>
+
+          <!-- 短句：三列 -->
+          <div class="grid grid-3">
+            {quotes.map((q) => <QuoteCard {...q} data-reveal />)}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</Base>

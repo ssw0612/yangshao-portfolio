@@ -1,0 +1,148 @@
+---
+/**
+ * NavBar.astro —— 全站右上角固定导航
+ * ------------------------------------------------------------
+ *  说明：
+ *  - 菜单项来自 src/data/works.js 的 navItems，想加/改菜单只改那个数组。
+ *  - 点击是"真实页面跳转"（会进入新页面，网址随之改变），不是页内滚动。
+ *  - 当前所在的页面，对应菜单项会自动高亮（亮色 + 下方一条细线）。
+ *  - 手机端：导航变成一条可横向滑动的小菜单，不换行、不溢出。
+ */
+import { navItems } from '../data/works.js';
+
+// 当前页面的路径，用来判断哪一项该高亮
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<nav class="navbar" aria-label="主导航">
+  <div class="navbar-inner">
+    <!-- 菜单项（来自 works.js，顺序即显示顺序），整体靠最右侧 -->
+    <ul class="navbar-menu">
+      {navItems.map((item) => {
+        // 判断当前菜单项是否是"当前页"，是则加 active 类高亮
+        // 子页面也算（例如在文章详情页 /writings/liji-lita 时，"文章"同样高亮）
+        const itemPath = item.match.replace(/\/$/, '') || '/';
+        const isActive =
+          currentPath === itemPath ||
+          (itemPath !== '/' && currentPath.startsWith(itemPath + '/'));
+        return (
+          <li class="navbar-item">
+            <a
+              class:list={['navbar-link', { active: isActive }]}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              {item.label}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</nav>
+
+<style>
+  /* 右上角固定：滚动时一直可见，压在背景图上 */
+  .navbar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 100;
+    /* 顶部一层极淡的深色渐变，保证菜单在亮背景上也看得清 */
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 12, 0.72) 0%,
+      rgba(10, 10, 12, 0.32) 60%,
+      rgba(10, 10, 12, 0) 100%
+    );
+  }
+
+  .navbar-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 14px var(--side-pad) 16px;
+    display: flex;
+    align-items: center;
+    /* 左侧没有品牌名后，菜单整体靠最右对齐 */
+    justify-content: flex-end;
+  }
+
+  /* 右侧菜单：横向排列 */
+  .navbar-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .navbar-link {
+    position: relative;
+    display: inline-block;
+    padding: 4px 0;
+    font-size: 15.5px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text-soft);
+    white-space: nowrap;
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  /* 默认下方一条透明细线，占位用，避免 hover 时跳动 */
+  .navbar-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--dur-hover) var(--ease);
+  }
+
+  .navbar-link:hover {
+    color: var(--accent);
+  }
+
+  .navbar-link:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* 当前页：颜色更亮 + 细线保持亮起 */
+  .navbar-link.active {
+    color: var(--text);
+  }
+
+  .navbar-link.active::after {
+    transform: scaleX(1);
+  }
+
+  /* ---------- 手机端：菜单可横向滑动，不换行不溢出 ---------- */
+  @media (max-width: 767px) {
+    .navbar-inner {
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .navbar-menu {
+      gap: 18px;
+      /* 万一菜单比屏幕还宽，则允许横向滑动，绝不换行撑破 */
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      max-width: 92vw;
+    }
+
+    .navbar-menu::-webkit-scrollbar {
+      display: none;
+    }
+
+    .navbar-link {
+      font-size: 13.5px;
+      letter-spacing: 0.08em;
+    }
+  }
+</style>

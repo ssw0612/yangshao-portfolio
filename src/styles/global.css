@@ -1,0 +1,505 @@
+/* ============================================================
+   仰韶 · 个人作品集 —— 全局样式
+   ------------------------------------------------------------
+   想改颜色 / 动效快慢，全部改下面 :root 里的变量即可，
+   不用动页面结构。变量名后面都有中文注释说明。
+   ============================================================ */
+
+:root {
+  /* ---------- 颜色 ---------- */
+  --bg: #0a0a0c;            /* 页面底色（近黑，非纯黑） */
+  --bg-soft: #101014;       /* 卡片底色 */
+  --bg-softer: #15151b;     /* 卡片悬停底色 */
+  --accent: #8a94a6;        /* 主色：冷灰蓝（全站只用这一个主色） */
+  --accent-dim: #5c6472;    /* 主色的暗调，用于次要线条 */
+  --text: #e8eaed;          /* 主文字（近白，不是纯白） */
+  --text-soft: #8a94a6;     /* 次要文字 */
+  --text-faint: #5a6069;    /* 更弱的文字（时间、地点等） */
+  --border: rgba(138, 148, 166, 0.14);       /* 细边框 */
+  --border-hover: rgba(138, 148, 166, 0.38); /* 悬停时的边框 */
+
+  /* ---------- 字体 ---------- */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Source Han Sans SC',
+    'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+
+  /* ---------- 排版 ---------- */
+  --tracking-wide: 0.06em;   /* 标题字距 */
+  --tracking-xwide: 0.14em;  /* 大标题 / 小标签字距 */
+  --max-width: 1120px;       /* 内容最大宽度 */
+  --side-pad: 24px;          /* 左右留白 */
+
+  /* ---------- 动效 ---------- */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1); /* 统一的缓动曲线 */
+  --dur-hover: 0.4s;         /* 卡片悬停亮起的时长 */
+  --breathe: 11s;            /* 背景呼吸一次的时间（越大越慢） */
+}
+
+/* ============================================================
+   基础重置
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, p, figure, blockquote {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--dur-hover) var(--ease);
+}
+
+a:hover {
+  color: var(--text);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* 让键盘用户的焦点可见（无障碍） */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ============================================================
+   氛围层 1：背景呼吸光
+   —— 一团极淡的冷灰蓝，在页面背后缓慢明灭，像深海。
+   ============================================================ */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(138, 148, 166, 0.10) 0%, transparent 70%),
+    radial-gradient(50% 40% at 80% 90%, rgba(138, 148, 166, 0.06) 0%, transparent 70%);
+  animation: breathe var(--breathe) ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.04); }
+}
+
+/* ============================================================
+   氛围层 2：鼠标跟随光晕
+   —— 一团跟随鼠标的极弱光，透明到几乎察觉不到。
+       位置由 src/pages/index.astro 里的小段 JS 更新（用 transform，性能好）。
+   ============================================================ */
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 680px;
+  height: 680px;
+  margin: -340px 0 0 -340px; /* 让光晕中心对准鼠标点 */
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(138, 148, 166, 0.09) 0%,
+    rgba(138, 148, 166, 0.04) 40%,
+    transparent 72%
+  );
+  opacity: 0;
+  transition: opacity 1.2s var(--ease);
+  will-change: transform;
+}
+
+body.cursor-ready .cursor-glow {
+  opacity: 1;
+}
+
+/* ============================================================
+   氛围层 2·补：鼠标光点（在光晕之上，几乎实时跟随）
+   —— 默认是一个 8px 小圆点；移到可点元素上时扩张成圆环，
+       带 data-cursor="查看" 的还会显示文字。
+       ★ 保留系统原生光标（不写 cursor: none），光点只是叠加装饰。
+   —— 触屏 / 关闭动效的系统不显示（见文件底部降级规则）。
+   ============================================================ */
+.cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background-color: var(--accent);
+  border: 2px solid transparent;
+  /* 最高层，且不挡点击 */
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  transition:
+    opacity 0.3s var(--ease),
+    width 0.25s var(--ease),
+    height 0.25s var(--ease),
+    background-color 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+  will-change: transform;
+}
+
+body.cursor-ready .cursor-dot {
+  opacity: 1;
+}
+
+/* 悬停到可点元素：扩张成 40px 空心圆环 */
+.cursor-dot.is-hover {
+  width: 40px;
+  height: 40px;
+  background-color: transparent;
+  border-color: var(--accent);
+}
+
+/* 带 data-cursor 文字的：再大一点，容下文字 */
+.cursor-dot.is-label {
+  width: 56px;
+  height: 56px;
+  background-color: rgba(10, 10, 12, 0.5);
+  border-color: var(--accent);
+}
+
+.cursor-dot-label {
+  font-size: 0;
+  transition: font-size 0.25s var(--ease);
+}
+
+.cursor-dot.is-label .cursor-dot-label {
+  font-size: 11px;
+}
+
+/* ============================================================
+   氛围层 3：极细颗粒噪点（胶片感）
+   —— 透明度极低，只是让画面不那么"平"。
+       用内联 SVG 生成，不下载任何图片。
+   ============================================================ */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   布局骨架
+   ============================================================ */
+.page {
+  position: relative;
+  z-index: 3; /* 内容永远在氛围层之上 */
+}
+
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--side-pad);
+}
+
+.section {
+  padding: 96px 0;
+}
+
+/* 区块小标题（如：【视频】） */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.section-index {
+  font-size: 12px;
+  letter-spacing: var(--tracking-xwide);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text);
+}
+
+.section-note {
+  font-size: 13px;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+
+/* 区块之间的细分隔线 */
+.section + .section {
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================================
+   网格布局（响应式核心）
+   默认（手机，<768px）：单列
+   ≥768px：视频/文字两列，图片三列
+   ============================================================ */
+.grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* 长文卡片区：长文在上（2 列），短句在下（3 列） */
+.articles-layout {
+  display: grid;
+  gap: 28px;
+}
+
+/* ============================================================
+   子页面统一标题区（/videos /writings /photos /about /contact 都用）
+   —— 顶部留出导航高度，安静的大标题 + 一行说明
+   ============================================================ */
+.page-head {
+  padding: 140px 0 20px; /* 140px 顶部留白，避开右上角固定导航 */
+}
+
+.page-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--text-faint);
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: clamp(30px, 6vw, 44px);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  color: var(--text);
+}
+
+.page-desc {
+  margin-top: 18px;
+  max-width: 34em;
+  font-size: 14.5px;
+  line-height: 1.95;
+  color: var(--text-soft);
+}
+
+/* 子页面内容区：标题区之后的主体 */
+.page-body {
+  padding-bottom: 96px;
+}
+
+/* 首页概览区块底部的"查看全部 →"入口 */
+.section-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 32px;
+  font-size: 13px;
+  letter-spacing: var(--tracking-xwide);
+  color: var(--accent);
+  transition: color var(--dur-hover) var(--ease), gap var(--dur-hover) var(--ease);
+}
+
+.section-more:hover {
+  color: var(--text);
+  gap: 16px;
+}
+
+.section-more-arrow {
+  display: inline-block;
+  transition: transform var(--dur-hover) var(--ease);
+}
+
+.section-more:hover .section-more-arrow {
+  transform: translateX(4px);
+}
+
+/* ============================================================
+   通用卡片：暗底 + 细边 + 悬停缓慢亮起
+   ============================================================ */
+.card {
+  position: relative;
+  display: block;
+  background-color: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition:
+    background-color var(--dur-hover) var(--ease),
+    border-color var(--dur-hover) var(--ease),
+    transform var(--dur-hover) var(--ease),
+    box-shadow var(--dur-hover) var(--ease);
+}
+
+.card:hover {
+  background-color: var(--bg-softer);
+  border-color: var(--border-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 18px 48px -28px rgba(0, 0, 0, 0.9);
+}
+
+/* ============================================================
+   滚动淡入（reveal on scroll）
+   —— 带 data-reveal 的元素进入视口时，由脚本加 .is-visible 触发浮出。
+   ★ 关键：默认（没 JS 时）内容完全可见；
+      只有 <html> 上加了 .has-js（由 Base.astro 里的内联脚本在最早时机加）
+      才把初始态设为"透明 + 下移"，再淡入。
+      所以：JS 没跑起来 → 内容照常显示，绝不白屏。
+   ============================================================ */
+.has-js [data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s var(--ease),
+    transform 0.7s var(--ease);
+}
+
+.has-js [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* 同一网格内相邻元素依次浮现（错位），营造"一点点浮出来"的节奏 */
+.has-js .grid > [data-reveal]:nth-child(2) { transition-delay: 70ms; }
+.has-js .grid > [data-reveal]:nth-child(3) { transition-delay: 140ms; }
+.has-js .grid > [data-reveal]:nth-child(n + 4) { transition-delay: 200ms; }
+
+/* ============================================================
+   底部
+   ============================================================ */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 80px 0 48px;
+}
+
+.footer-copy {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  justify-content: space-between;
+}
+
+/* ============================================================
+   无障碍：尊重系统的"减少动态效果"设置
+   —— 用户在系统里关了动画，这里就不播，页面不闪不抖。
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .ambient-bg {
+    animation: none;
+    opacity: 0.85;
+  }
+
+  .cursor-glow {
+    display: none;
+  }
+
+  /* 关闭动效：不显示鼠标光点，reveal 元素直接可见（无淡入无位移） */
+  .cursor-dot {
+    display: none;
+  }
+
+  .has-js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* 触屏设备：不显示鼠标光点（原生光标保留，本来触屏也没有鼠标） */
+@media (hover: none) {
+  .cursor-dot {
+    display: none;
+  }
+}
+
+/* ============================================================
+   小屏微调：字号与留白收紧
+   ============================================================ */
+@media (max-width: 767px) {
+  :root {
+    --side-pad: 18px;
+  }
+
+  .section {
+    padding: 64px 0;
+  }
+
+  .section-head {
+    margin-bottom: 28px;
+  }
+
+  .page-head {
+    padding: 108px 0 16px; /* 手机端导航更矮，留白相应收紧 */
+  }
+
+  .page-body {
+    padding-bottom: 64px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+}

@@ -1,0 +1,257 @@
+---
+/**
+ * Footer.astro —— 底部联系方式区
+ * 联系方式做成大号可点击条目，方便当简历用时扫一眼就能点到。
+ */
+import { contact, site } from '../data/works.js';
+---
+
+<footer class="footer" id="contact">
+  <div class="container">
+    <div class="footer-inner">
+      <p class="footer-eyebrow">CONTACT</p>
+      <h2 class="footer-title">联系我</h2>
+      <p class="footer-invitation">{contact.invitation}</p>
+
+      <ul class="contact-list">
+        {contact.items.map((item, i) => (
+          <li class="contact-item">
+            {item.type === 'qr' ? (
+              <div class="contact-link contact-link--qr">
+                <button
+                  class="qr-toggle"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls={`qr-panel-${i}`}
+                  data-qr-toggle
+                >
+                  <span class="contact-label">{item.label}</span>
+                  <span class="contact-value qr-hint">
+                    <span class="qr-hint-text">点击显示二维码</span>
+                    <span class="qr-hint-icon" aria-hidden="true">+</span>
+                  </span>
+                </button>
+                <div class="qr-panel" id={`qr-panel-${i}`}>
+                  <div class="qr-card">
+                    <img src={item.qr} alt={`${item.label}二维码`} loading="lazy" />
+                  </div>
+                </div>
+              </div>
+            ) : item.href ? (
+              <a href={item.href} class="contact-link" target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+                <span class="contact-label">{item.label}</span>
+                <span class="contact-value">{item.value}</span>
+              </a>
+            ) : (
+              <span class="contact-link contact-link--static">
+                <span class="contact-label">{item.label}</span>
+                <span class="contact-value">{item.value}</span>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="footer-copy">
+      <span>{contact.copyright}</span>
+      <a href="#top" class="footer-top">回到顶部 ↑</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--text-faint);
+    margin-bottom: 22px;
+  }
+
+  .footer-title {
+    font-size: 26px;
+    font-weight: 400;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text);
+  }
+
+  .footer-invitation {
+    margin-top: 14px;
+    max-width: 32em;
+    font-size: 14.5px;
+    line-height: 1.9;
+    color: var(--text-soft);
+  }
+
+  .contact-list {
+    list-style: none;
+    margin: 40px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+    grid-template-columns: 1fr;
+  }
+
+  .contact-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid transparent;
+    border-top-color: var(--border);
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease),
+      padding var(--dur-hover) var(--ease);
+  }
+
+  .contact-link:hover {
+    background-color: var(--bg-soft);
+    border-color: var(--border-hover);
+    padding-left: 24px;
+  }
+
+  .contact-link--static:hover {
+    background-color: transparent;
+    border-color: var(--border);
+    padding-left: 18px;
+  }
+
+  .contact-label {
+    font-size: 12px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+
+  .contact-value {
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    transition: color var(--dur-hover) var(--ease);
+    text-align: right;
+    word-break: break-all;
+  }
+
+  .contact-link:hover .contact-value {
+    color: var(--accent);
+  }
+
+  .footer-top {
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+  }
+
+  .footer-top:hover {
+    color: var(--accent);
+  }
+
+  /* ---------- 微信二维码：默认收起，点击 / hover 才展开 ---------- */
+  .contact-link--qr {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .contact-link--qr:hover {
+    background-color: transparent;
+    border-color: var(--border);
+    padding-left: 18px;
+  }
+
+  /* 触发按钮：整行可点（键盘 Enter / Space 同样有效） */
+  .qr-toggle {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .qr-toggle:hover .qr-hint {
+    color: var(--accent);
+  }
+
+  .qr-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .qr-hint-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease);
+  }
+
+  .qr-toggle[aria-expanded='true'] .qr-hint-icon {
+    transform: rotate(45deg);
+    border-color: var(--border-hover);
+  }
+
+  /* 折叠容器：默认高度 0（裁掉）+ 不可见；展开时 200ms 展开。
+     ★ 这里只动容器的高度，绝不给二维码加透明/滤镜过渡 —— 码永远原色原样。 */
+  .qr-panel {
+    max-height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    transition:
+      max-height 0.2s var(--ease),
+      margin-top 0.2s var(--ease),
+      visibility 0s linear 0.2s;
+  }
+
+  /* 展开：① 点击（JS 加 .is-open）② 桌面 hover ③ 键盘聚焦到按钮 */
+  .qr-panel.is-open,
+  .contact-link--qr:hover .qr-panel,
+  .contact-link--qr:focus-within .qr-panel {
+    max-height: 220px;
+    visibility: visible;
+    margin-top: 14px;
+    transition-delay: 0s;
+  }
+
+  /* 白底圆角小卡片 = "展柜里的一张小卡片"（只改容器，不动码本身） */
+  .qr-card {
+    display: inline-block;
+    padding: 8px;
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid rgba(138, 148, 166, 0.22);
+    box-shadow: 0 14px 34px -20px rgba(0, 0, 0, 0.9);
+  }
+
+  /* ★ 二维码原图原色原样：不裁、不改色、不加任何滤镜 */
+  .qr-card img {
+    display: block;
+    width: 136px;
+    height: 136px;
+    object-fit: contain;
+  }
+
+  @media (min-width: 768px) {
+    .contact-list {
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 24px;
+    }
+  }
+</style>

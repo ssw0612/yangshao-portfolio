@@ -1,0 +1,44 @@
+---
+/**
+ * photos.astro —— 图集页（路径 /photos）
+ * ------------------------------------------------------------
+ *  4 张真实图片，来自 public/images/（数据在 works.js 的 photos）。
+ *  横图竖图混排：卡片统一按 4:3 裁切 + object-fit: cover，不会被拉变形。
+ *  【换图】把新图放进 public/images/，再改 works.js 里 photos 的 src / title。
+ */
+import Base from '../layouts/Base.astro';
+import ImageCard from '../components/ImageCard.astro';
+import { photos } from '../data/works.js';
+---
+
+<Base title="图集 · 仰韶" description="一些喜欢的图 · 图片处理习作。">
+  <main>
+    <header class="page-head">
+      <div class="container">
+        <p class="page-eyebrow">IMAGES</p>
+        <h1 class="page-title">图集</h1>
+        <p class="page-desc">
+          一些喜欢的图 · 图片处理习作
+        </p>
+      </div>
+    </header>
+
+    <section class="page-body">
+      <div class="container">
+        <div class="grid grid-2 grid-photo">
+          {photos.map((p) => <ImageCard {...p} data-reveal />)}
+        </div>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  /* 图集：桌面端两列（2×2），图片能看得大一些 */
+  @media (min-width: 768px) {
+    .grid-photo {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
+    }
+  }
+</style>

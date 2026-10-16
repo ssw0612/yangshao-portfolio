@@ -1,0 +1,627 @@
+---
+/**
+ * Lightbox.astro —— 图片灯箱（原生 <dialog> + 原生 JS，零第三方依赖）
+ * ------------------------------------------------------------
+ *  【怎么用】页面里只要有 <a data-lightbox href="/images/full/xxx.jpg">，
+ *            点它就会在这里放大显示；不需要改任何数据文件。
+ *  【渐进增强（很重要）】
+ *            <a> 的 href 本身就是大图地址。JS 没跑起来时，点击 = 浏览器
+ *            直接打开那张大图，内容照样看得到。灯箱只是"更好看的入口"。
+ *
+ *  交互：
+ *   关闭 —— 点右上角 × / 点图片外的暗区 / 按 Esc / 手机返回键
+ *   换图 —— ← → 键 / 左右箭头 / 手机左右滑动
+ *   放大 —— 灯箱里再点一次图片 → 100% 原始像素，可拖动查看；再点还原
+ */
+---
+
+<dialog class="lightbox" id="lightbox" aria-label="图片查看">
+  <!-- 图片舞台：点它以外的区域 = 关闭 -->
+  <div class="lb-surface" data-lb-surface>
+    <figure class="lb-stage" data-lb-stage>
+      <img class="lb-img" data-lb-img alt="" />
+    </figure>
+  </div>
+
+  <!-- 右上角关闭 -->
+  <button class="lb-btn lb-close" type="button" data-lb-close aria-label="关闭">
+    <span aria-hidden="true">×</span>
+  </button>
+
+  <!-- 左右切换 -->
+  <button class="lb-btn lb-prev" type="button" data-lb-prev aria-label="上一张">
+    <span aria-hidden="true">‹</span>
+  </button>
+  <button class="lb-btn lb-next" type="button" data-lb-next aria-label="下一张">
+    <span aria-hidden="true">›</span>
+  </button>
+
+  <!-- 底部：标题 + 计数 -->
+  <div class="lb-bar">
+    <p class="lb-caption">
+      <span class="lb-title" data-lb-title></span>
+      <span class="lb-meta" data-lb-meta></span>
+    </p>
+    <p class="lb-count">
+      <span data-lb-index>1</span><span class="lb-count-sep">/</span><span data-lb-total>1</span>
+    </p>
+  </div>
+</dialog>
+
+<style>
+  /* ---------- 遮罩层 ---------- */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgba(10, 10, 12, 0.94);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--text);
+    overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: none; /* 手机上滑动交给脚本处理，不触发页面滚动 */
+  }
+
+  .lightbox::backdrop {
+    background: rgba(10, 10, 12, 0.94);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* 打开：≤200ms 淡入 + 轻微放大；关闭：快速淡出 */
+  .lightbox[open] {
+    animation: lb-in 180ms var(--ease);
+  }
+
+  .lightbox[open]::backdrop {
+    animation: lb-fade 180ms var(--ease);
+  }
+
+  .lightbox.is-closing {
+    animation: lb-out 140ms var(--ease) forwards;
+  }
+
+  .lightbox.is-closing::backdrop {
+    animation: lb-fade-out 140ms var(--ease) forwards;
+  }
+
+  @keyframes lb-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes lb-out {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.98); }
+  }
+
+  @keyframes lb-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes lb-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
+  /* ---------- 图片舞台 ---------- */
+  .lb-surface {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 64px 92px;
+  }
+
+  .lb-stage {
+    position: relative;
+    margin: 0;
+    /* 撑满（已减去 padding 的）可视区，图片的 max-100% 才有确定的参照 */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .lb-img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 2px;
+    cursor: zoom-in;
+    transition: opacity 160ms var(--ease);
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* 100% 原始像素：舞台可滚动，图片按原始尺寸铺开 */
+  .lb-stage.is-zoomed {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: auto;
+    cursor: grab;
+  }
+
+  .lb-stage.is-zoomed .lb-img {
+    max-width: none;
+    max-height: none;
+    cursor: grab;
+  }
+
+  .lb-stage.is-dragging,
+  .lb-stage.is-dragging .lb-img {
+    cursor: grabbing;
+  }
+
+  /* ---------- 按钮：44×44 可点区 ---------- */
+  .lb-btn {
+    position: absolute;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: rgba(16, 16, 20, 0.6);
+    color: var(--text-soft);
+    font-family: inherit;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      color var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease),
+      background-color var(--dur-hover) var(--ease);
+  }
+
+  .lb-btn:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: rgba(21, 21, 27, 0.85);
+  }
+
+  .lb-close {
+    top: 16px;
+    right: 16px;
+    font-size: 22px;
+  }
+
+  .lb-prev {
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .lb-next {
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* 只有一张图时，左右箭头没有意义 */
+  .lightbox.is-single .lb-prev,
+  .lightbox.is-single .lb-next {
+    display: none;
+  }
+
+  /* ---------- 底部信息条 ---------- */
+  .lb-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 20px 64px 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 12, 0.55) 100%);
+  }
+
+  .lb-caption {
+    margin: 0;
+    min-width: 0;
+  }
+
+  .lb-title {
+    display: block;
+    font-size: 14px;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text);
+  }
+
+  .lb-meta {
+    display: block;
+    margin-top: 4px;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+
+  .lb-count {
+    margin: 0;
+    flex: none;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lb-count-sep {
+    margin: 0 6px;
+    opacity: 0.6;
+  }
+
+  /* ---------- 手机：留白与按钮收紧 ---------- */
+  @media (max-width: 767px) {
+    .lb-surface {
+      padding: 56px 16px 96px;
+    }
+
+    .lb-bar {
+      padding: 16px 18px 20px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
+    .lb-close { top: 10px; right: 10px; }
+  }
+
+  /* ---------- 触屏：不显示 hover 态（避免手机上"粘住"） ---------- */
+  @media (hover: none) {
+    .lb-btn:hover {
+      color: var(--text-soft);
+      border-color: var(--border);
+      background: rgba(16, 16, 20, 0.6);
+    }
+  }
+
+  /* ---------- 关闭动效：只留快速淡入，不做缩放位移 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox[open],
+    .lightbox[open]::backdrop,
+    .lightbox.is-closing,
+    .lightbox.is-closing::backdrop {
+      animation: lb-fade 60ms var(--ease) forwards;
+    }
+
+    .lb-img {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    const dlg = document.getElementById('lightbox') as HTMLDialogElement | null;
+    if (!dlg) return;
+
+    const surface = dlg.querySelector('[data-lb-surface]') as HTMLElement | null;
+    const stage = dlg.querySelector('[data-lb-stage]') as HTMLElement | null;
+    const img = dlg.querySelector('[data-lb-img]') as HTMLImageElement | null;
+    const elTitle = dlg.querySelector('[data-lb-title]');
+    const elMeta = dlg.querySelector('[data-lb-meta]');
+    const elIndex = dlg.querySelector('[data-lb-index]');
+    const elTotal = dlg.querySelector('[data-lb-total]');
+    const btnClose = dlg.querySelector('[data-lb-close]') as HTMLButtonElement | null;
+    const btnPrev = dlg.querySelector('[data-lb-prev]') as HTMLButtonElement | null;
+    const btnNext = dlg.querySelector('[data-lb-next]') as HTMLButtonElement | null;
+    if (!surface || !stage || !img || !btnClose || !btnPrev || !btnNext) return;
+
+    // 页面上所有带 data-lightbox 的链接（即灯箱的全部图片）
+    const links = Array.prototype.slice.call(
+      document.querySelectorAll('a[data-lightbox]')
+    ) as HTMLAnchorElement[];
+    if (!links.length) return;
+
+    const items = links.map((a) => ({
+      full: a.getAttribute('href') || '',
+      thumb: a.getAttribute('data-thumb') || '',
+      title: a.getAttribute('data-title') || '',
+      meta: a.getAttribute('data-meta') || '',
+    }));
+
+    let current = 0;
+    let isOpen = false;
+    let isClosing = false;
+    let lastFocus: HTMLElement | null = null;
+    let scrollY = 0;
+    let zoomed = false;
+
+    if (elTotal) elTotal.textContent = String(items.length);
+    dlg.classList.toggle('is-single', items.length < 2);
+
+    // ---------- 打开 / 关闭 ----------
+    function open(index: number, trigger: HTMLElement) {
+      if (isOpen) return;
+      isOpen = true;
+      current = index;
+      lastFocus = trigger;
+
+      scrollY = window.scrollY;
+      lockScroll(true);
+
+      // 先渲染图片，再显示（避免第一帧是空的）
+      render(current);
+      dlg.classList.remove('is-closing');
+      if (typeof dlg.showModal === 'function') dlg.showModal();
+      else dlg.setAttribute('open', '');
+
+      // ★ 关键：压一条历史记录，手机返回键才会先关灯箱而不是退出网站
+      try {
+        history.pushState({ lightbox: true }, '');
+      } catch (_) {
+        /* 某些环境禁用 pushState，忽略即可 */
+      }
+      preload(current);
+    }
+
+    /** 用户主动关闭：先把历史记录退掉，真正的收尾交给 popstate */
+    function requestClose() {
+      if (!isOpen || isClosing) return;
+      const st = history.state as { lightbox?: boolean } | null;
+      if (st && st.lightbox) {
+        history.back(); // → 触发 popstate → closeFinal()
+        return;
+      }
+      closeFinal();
+    }
+
+    /** 真正的收尾：播淡出、解锁滚动、归还焦点 */
+    function closeFinal() {
+      if (isClosing) return;
+      if (!isOpen && !dlg.open) return;
+      isClosing = true;
+      isOpen = false;
+      setZoom(false);
+
+      dlg.classList.add('is-closing');
+      const done = () => {
+        dlg.classList.remove('is-closing');
+        if (typeof dlg.close === 'function' && dlg.open) dlg.close();
+        else dlg.removeAttribute('open');
+        lockScroll(false);
+        isClosing = false;
+        if (lastFocus && typeof lastFocus.focus === 'function') {
+          lastFocus.focus({ preventScroll: true });
+        }
+        lastFocus = null;
+      };
+      window.setTimeout(done, 140);
+    }
+
+    function lockScroll(on: boolean) {
+      const html = document.documentElement;
+      if (on) {
+        html.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      } else {
+        html.style.overflow = '';
+        document.body.style.overflow = '';
+        // 恢复到打开前的滚动位置（html 上有 scroll-behavior: smooth，先临时关掉）
+        const prev = html.style.scrollBehavior;
+        html.style.scrollBehavior = 'auto';
+        window.scrollTo(0, scrollY);
+        html.style.scrollBehavior = prev;
+      }
+    }
+
+    // ---------- 渲染某一张 ----------
+    function render(i: number) {
+      const it = items[i];
+      if (!it) return;
+      current = i;
+      setZoom(false);
+
+      if (elTitle) elTitle.textContent = it.title;
+      if (elMeta) elMeta.textContent = it.meta;
+      if (elIndex) elIndex.textContent = String(i + 1);
+
+      // 交叉淡入：先淡出旧的，新图加载好再淡入（切换时不重播整个灯箱动画）
+      img.style.opacity = '0';
+      const swap = () => {
+        img.src = it.full;
+        img.alt = it.title || '作品图片';
+        img.style.opacity = '1';
+      };
+      const pre = new Image();
+      let settled = false;
+      const go = () => {
+        if (settled) return;
+        settled = true;
+        swap();
+      };
+      pre.onload = go;
+      pre.onerror = go; // 图挂了也要把 src 换上，让浏览器自己显示破图/重试
+      pre.src = it.full;
+      window.setTimeout(go, 1200); // 兜底：别让图片一直停在透明状态
+    }
+
+    /** 预加载前后各一张 */
+    function preload(i: number) {
+      [i - 1, i + 1].forEach((n) => {
+        const it = items[n];
+        if (it && it.full) {
+          const p = new Image();
+          p.src = it.full;
+        }
+      });
+    }
+
+    function go(delta: number) {
+      if (items.length < 2) return;
+      const next = (current + delta + items.length) % items.length;
+      render(next);
+      preload(next);
+    }
+
+    // ---------- 二级放大：100% 原始像素 + 可拖动 ----------
+    function setZoom(on: boolean) {
+      zoomed = on;
+      stage.classList.toggle('is-zoomed', on);
+      if (on) {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
+        img.setAttribute('data-cursor', '还原');
+        // 从中心开始看
+        stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+        stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
+      } else {
+        img.style.width = '';
+        img.style.height = '';
+        img.setAttribute('data-cursor', '放大');
+      }
+    }
+
+    // 拖动查看（鼠标按住 / 手机单指）
+    let dragging = false;
+    let moved = false; // 本次按下有没有真的拖动过（有则不当作"点击放大"）
+    let dragX = 0;
+    let dragY = 0;
+    let dragSL = 0;
+    let dragST = 0;
+
+    stage.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (!zoomed) return;
+      dragging = true;
+      moved = false;
+      dragX = e.clientX;
+      dragY = e.clientY;
+      dragSL = stage.scrollLeft;
+      dragST = stage.scrollTop;
+      stage.classList.add('is-dragging');
+    });
+
+    stage.addEventListener('pointermove', (e: PointerEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - dragX;
+      const dy = e.clientY - dragY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      stage.scrollLeft = dragSL - dx;
+      stage.scrollTop = dragST - dy;
+    });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      stage.classList.remove('is-dragging');
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+    stage.addEventListener('pointerleave', endDrag);
+
+    // 点图片：切换 100% / 适应屏幕（刚刚是拖动的话不算点击）
+    img.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      if (zoomed && moved) return; // 100% 状态下是在拖动看图，不是想还原
+      setZoom(!zoomed);
+    });
+
+    // ---------- 事件绑定 ----------
+    // 拦截 <a> 的默认跳转（JS 没跑起来时，默认跳转就是"打开大图"的兜底）
+    links.forEach((a, i) => {
+      a.addEventListener('click', (e: MouseEvent) => {
+        if (e.defaultPrevented) return;
+        // 按住 Ctrl / Cmd / 中键 → 让浏览器自己开新标签，不拦
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        open(i, a);
+      });
+    });
+
+    btnClose.addEventListener('click', requestClose);
+    btnPrev.addEventListener('click', () => go(-1));
+    btnNext.addEventListener('click', () => go(1));
+
+    // 点图片外的暗区 = 关闭
+    surface.addEventListener('click', (e: MouseEvent) => {
+      const t = e.target as Node | null;
+      if (t && (t === surface || t === stage)) requestClose();
+    });
+
+    // Esc：拦下原生关闭，走我们自己的收尾（保证历史记录干净）
+    dlg.addEventListener('cancel', (e: Event) => {
+      e.preventDefault();
+      requestClose();
+    });
+
+    // 键盘 ← →
+    dlg.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        go(1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        go(-1);
+      }
+    });
+
+    // ★ 手机返回键：关掉灯箱，而不是退出网站
+    window.addEventListener('popstate', () => {
+      if (dlg.open) closeFinal();
+    });
+
+    // ---------- 手机左右滑动 ----------
+    let sx = 0;
+    let sy = 0;
+    let swiping = false;
+
+    surface.addEventListener(
+      'pointerdown',
+      (e: PointerEvent) => {
+        if (zoomed) return; // 100% 状态下是拖动查看，不切换
+        swiping = true;
+        sx = e.clientX;
+        sy = e.clientY;
+      },
+      { passive: true }
+    );
+
+    surface.addEventListener(
+      'pointerup',
+      (e: PointerEvent) => {
+        if (!swiping) return;
+        swiping = false;
+        const dx = e.clientX - sx;
+        const dy = e.clientY - sy;
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+          go(dx < 0 ? 1 : -1);
+        } else if (Math.abs(dx) < 6 && Math.abs(dy) < 6) {
+          // 几乎没动：点在图片外（暗区）时由 click 处理关闭，这里不重复处理
+        }
+      },
+      { passive: true }
+    );
+
+    // 窗口尺寸变化时，100% 状态下重新居中（避免露出空白）
+    window.addEventListener('resize', () => {
+      if (zoomed) setZoom(true);
+    });
+  })();
+</script>

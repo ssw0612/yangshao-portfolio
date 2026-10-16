@@ -1,0 +1,509 @@
+---
+/**
+ * about.astro —— 「关于我」介绍页（路径 /about）
+ * 文案来自 src/data/works.js 的 about，想改自我介绍只改那个文件。
+ * 页面结构：标题区 → motto → 信任区（5 个资料块 + 1 个平台卡片区）→ 正文故事 → 经历区 → 落款。
+ */
+import Base from '../layouts/Base.astro';
+import { about, platforms } from '../data/works.js';
+
+// 信任区数据（想改这块内容，去 works.js 的 about.profile）
+const { current, timeline, skills, looking, experience } = about.profile;
+
+// 平台图标（与 videos.astro 同源 key→svg 映射，便于两处样式同步）。
+// 重复一份到本文件，避免跨页面组件拆分。
+const PLATFORM_ICONS = {
+  'B 站':
+    '<rect x="3" y="7" width="18" height="13" rx="4"/><path d="M7 3l2.4 3M17 3l-2.4 3"/><path d="M9.5 12.5v3M14.5 12.5v3"/>',
+  '抖音':
+    '<path d="M14 4v10.6a3.6 3.6 0 1 1-3.1-3.57"/><path d="M14 4c.55 2.4 2.3 3.75 4.7 3.95"/>',
+  '小红书':
+    '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  '快手':
+    '<rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="#FF5000" stroke="none"/><path d="M9.6 7.4c1.6.2 2.7 1 3.3 2.4.5-1 1.4-1.6 2.5-1.7v2.3c-.9.1-1.6.7-1.9 1.6h1.4c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2h-1.5c-.3 2-1.8 3.4-3.8 3.4-2.2 0-3.9-1.6-3.9-3.7 0-1.3.7-2.4 1.6-3-.5-.5-.9-1.3-.9-2.1 0-1.3 1-2.4 2.2-2.6z" fill="#fff" stroke="none"/>',
+};
+const platformIconOf = (label) => PLATFORM_ICONS[label] || '<circle cx="12" cy="12" r="8"/>';
+
+// 平台卡片的副标签 —— 不写用户口吻的话，只标平台属性，不冒犯
+const PLATFORM_NOTE = {
+  'B 站': '成片 / 长视频',
+  '抖音': '日常 60s 以内',
+  '小红书': '图文 / 笔记',
+  '快手': '随手拍',
+};
+---
+
+<Base title="关于我 · 仰韶" description="关于仰韶：吉林艺术学院广播电视编导在读，做深度向内容创作者。">
+  <main>
+    <header class="page-head">
+      <div class="container">
+        <p class="page-eyebrow">ABOUT</p>
+        <h1 class="page-title">{about.heading}</h1>
+        {about.lead && <p class="page-desc">{about.lead}</p>}
+        {about.motto && <p class="page-motto">{about.motto}</p>}
+      </div>
+    </header>
+
+    <!-- ===================== 信任区：6 个资料块 ===================== -->
+    <section class="page-trust">
+      <div class="container">
+        <div class="trust">
+          <div class="trust-module trust-current" data-reveal>
+            <p class="trust-label">{current.label}</p>
+            <p class="trust-text">{current.text}</p>
+            <ul class="trust-tags">
+              {current.tags.map((t) => <li class="trust-tag">{t}</li>)}
+            </ul>
+          </div>
+
+          <div class="trust-module trust-collab" data-reveal>
+            <p class="trust-label">平台与露出</p>
+            <div class="platform-cards">
+              {platforms.map((p) => (
+                <a
+                  class="platform-card"
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`去 ${p.label} 主页`}
+                >
+                  <span class="platform-card-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={platformIconOf(p.label)} />
+                  </span>
+                  <span class="platform-card-body">
+                    <span class="platform-card-name">{p.label}</span>
+                    <span class="platform-card-note">{PLATFORM_NOTE[p.label] || '主页'}</span>
+                  </span>
+                  <span class="platform-card-arrow" aria-hidden="true">→</span>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div class="trust-module trust-timeline" data-reveal>
+            <p class="trust-label">{timeline.label}</p>
+            <ol class="timeline">
+              {timeline.items.map((it) => (
+                <li class="timeline-item">
+                  <span class="timeline-year">{it.year}</span>
+                  <span class="timeline-text">{it.text}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div class="trust-module trust-skills" data-reveal>
+            <p class="trust-label">{skills.label}</p>
+            <ul class="trust-tags">
+              {skills.items.map((t) => <li class="trust-tag">{t}</li>)}
+            </ul>
+          </div>
+
+          <div class="trust-module trust-looking" data-reveal>
+            <p class="trust-label">{looking.label}</p>
+            <p class="trust-text">{looking.text}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 正文：讲故事 ===================== -->
+    <section class="page-body">
+      <div class="container">
+        <div class="about-text" data-reveal>
+          {about.paragraphs.map((p) => <p>{p}</p>)}
+          {about.signature && <p class="about-sign">{about.signature}</p>}
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 经历：奖项 / 实习 / 志愿 / 社团 ===================== -->
+    <section class="page-experience">
+      <div class="container">
+        <div class="experience">
+          <div class="experience-header" data-reveal>
+            <p class="page-eyebrow">EXPERIENCE</p>
+            <h2 class="experience-title">{experience.label}</h2>
+          </div>
+
+          <div class="experience-grid">
+            <div class="experience-col" data-reveal>
+              <p class="trust-label">{experience.awards.label}</p>
+              <ul class="timeline">
+                {experience.awards.items.map((it) => (
+                  <li class="timeline-item">
+                    <span class="timeline-year">{it.date}</span>
+                    <span class="timeline-text">{it.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="experience-col" data-reveal>
+              <p class="trust-label">{experience.internships.label}</p>
+              <ul class="timeline">
+                {experience.internships.items.map((it) => (
+                  <li class="timeline-item">
+                    <span class="timeline-year">{it.date}</span>
+                    <span class="timeline-text">{it.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="experience-col" data-reveal>
+              <p class="trust-label">{experience.volunteer.label}</p>
+              <ul class="timeline">
+                {experience.volunteer.items.map((it) => (
+                  <li class="timeline-item">
+                    <span class="timeline-year">{it.date}</span>
+                    <span class="timeline-text">{it.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="experience-col" data-reveal>
+              <p class="trust-label">{experience.activities.label}</p>
+              <ul class="timeline">
+                {experience.activities.items.map((it) => (
+                  <li class="timeline-item">
+                    <span class="timeline-year">{it.date}</span>
+                    <span class="timeline-text">{it.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  /* ---------- 信任区布局 ---------- */
+  .page-trust {
+    padding: 8px 0 40px;
+  }
+
+  .trust {
+    display: grid;
+    gap: 40px 48px;
+    grid-template-columns: 1fr;
+  }
+
+  /* 桌面：两列网格，「走过的路」时间线占整行 */
+  @media (min-width: 768px) {
+    .trust {
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-areas:
+        'current collab'
+        'timeline timeline'
+        'skills looking';
+    }
+
+    .trust-current { grid-area: current; }
+    .trust-collab { grid-area: collab; }
+    .trust-timeline { grid-area: timeline; }
+    .trust-skills { grid-area: skills; }
+    .trust-looking { grid-area: looking; }
+  }
+
+  /* 每个模块：小标题 + 内容，顶部一条极细分割线 */
+  .trust-module {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .trust-label {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  .trust-text {
+    font-size: 14.5px;
+    line-height: 1.9;
+    letter-spacing: 0.02em;
+    color: var(--text-soft);
+  }
+
+  /* 标签（chip）：细边胶囊，平铺 */
+  .trust-tags {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .trust-text + .trust-tags {
+    margin-top: 14px;
+  }
+
+  .trust-tag {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--text-soft);
+  }
+
+  /* ---------- 时间线：左竖线 + 年份圆点 ---------- */
+  .timeline {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+  }
+
+  .timeline-item {
+    position: relative;
+    padding: 0 0 20px 22px;
+  }
+
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+
+  /* 竖线 */
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 16px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .timeline-item:last-child::before {
+    display: none;
+  }
+
+  /* 年份圆点 */
+  .timeline-item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--bg);
+  }
+
+  .timeline-year {
+    display: inline-block;
+    min-width: 3.4em;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timeline-text {
+    font-size: 13.5px;
+    line-height: 1.9;
+    color: var(--text-soft);
+  }
+
+  /* ---------- 正文（保留原有样式） ---------- */
+  .about-text {
+    max-width: 42em;
+  }
+
+  .about-text p {
+    margin-top: 26px;
+    font-size: 16px;
+    line-height: 2.1;
+    letter-spacing: 0.02em;
+    color: var(--text-soft);
+  }
+
+  .about-text p:first-child {
+    margin-top: 0;
+  }
+
+  .about-sign {
+    margin-top: 40px !important;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-faint) !important;
+    text-align: right;
+  }
+
+  @media (max-width: 767px) {
+    .about-text p {
+      font-size: 15px;
+    }
+
+    .trust {
+      gap: 32px;
+    }
+  }
+
+  /* ---------- motto（个人宣言，标题区下方独立成行） ---------- */
+  .page-motto {
+    margin: 22px 0 0;
+    max-width: 28em;
+    margin-left: auto;          /* 推到右侧 */
+    font-size: 14.5px;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    line-height: 1.9;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  /* ---------- 平台卡片：4 张大号链接卡 ---------- */
+  .platform-cards {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr;
+    margin-top: 14px;
+  }
+
+  .platform-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.012);
+    text-decoration: none;
+    color: var(--text);
+    transition:
+      border-color var(--dur-hover) var(--ease),
+      background-color var(--dur-hover) var(--ease),
+      transform 0.45s var(--ease);
+  }
+
+  .platform-card:hover {
+    border-color: var(--border-hover);
+    background-color: var(--bg-soft);
+    transform: translateX(4px);
+  }
+
+  .platform-card-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-soft);
+    transition: color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease);
+  }
+
+  .platform-card-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .platform-card:hover .platform-card-icon {
+    color: var(--accent);
+    border-color: var(--border-hover);
+  }
+
+  .platform-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .platform-card-name {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  .platform-card-note {
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+  }
+
+  .platform-card-arrow {
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--text-faint);
+    transition: color var(--dur-hover) var(--ease), transform var(--dur-hover) var(--ease);
+  }
+
+  .platform-card:hover .platform-card-arrow {
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+
+  /* 桌面：2 列 */
+  @media (min-width: 600px) {
+    .platform-cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .platform-card,
+    .platform-card-arrow {
+      transition: none;
+    }
+    .platform-card:hover {
+      transform: none;
+    }
+  }
+
+  /* ---------- 经历区：4 栏时间线 ---------- */
+  .page-experience {
+    padding: 32px 0 60px;
+  }
+
+  .experience-header {
+    margin-bottom: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .experience-title {
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text);
+    margin-top: 6px;
+  }
+
+  .experience-grid {
+    display: grid;
+    gap: 36px 40px;
+    grid-template-columns: 1fr;
+  }
+
+  .experience-col {
+    padding-top: 16px;
+  }
+
+  /* 桌面：两列 */
+  @media (min-width: 768px) {
+    .experience-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* 经历里的时间线：年份更短一点，因为日期位数比 2023 多 */
+  .experience-col .timeline-year {
+    min-width: 5em;
+  }
+</style>

@@ -1,0 +1,236 @@
+---
+/**
+ * contact.astro —— 联系方式独立页（路径 /contact）
+ * 沿用 src/data/works.js 的 contact 数据，做成整页排版。
+ */
+import Base from '../layouts/Base.astro';
+import Footer from '../components/Footer.astro';
+import { contact } from '../data/works.js';
+---
+
+<Base title="联系我 · 仰韶" description="联系仰韶：邮箱、社交账号与所在城市。">
+  <main>
+    <header class="page-head">
+      <div class="container">
+        <p class="page-eyebrow">CONTACT</p>
+        <h1 class="page-title">联系我</h1>
+        <p class="page-desc">{contact.invitation}</p>
+      </div>
+    </header>
+
+    <section class="page-body">
+      <div class="container">
+        <ul class="contact-page-list">
+          {contact.items.map((item, i) => (
+            <li class="contact-page-item">
+              {item.type === 'qr' ? (
+                <div class="contact-page-link contact-page-link--qr">
+                  <button
+                    class="qr-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls={`qr-page-panel-${i}`}
+                    data-qr-toggle
+                  >
+                    <span class="contact-page-label">{item.label}</span>
+                    <span class="contact-page-value qr-hint">
+                      <span class="qr-hint-text">点击显示二维码</span>
+                      <span class="qr-hint-icon" aria-hidden="true">+</span>
+                    </span>
+                  </button>
+                  <div class="qr-panel" id={`qr-page-panel-${i}`}>
+                    <div class="qr-card">
+                      <img src={item.qr} alt={`${item.label}二维码`} loading="lazy" />
+                    </div>
+                    <p class="qr-tip">{item.value}</p>
+                  </div>
+                </div>
+              ) : item.href ? (
+                <a href={item.href} class="contact-page-link" target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}>
+                  <span class="contact-page-label">{item.label}</span>
+                  <span class="contact-page-value">{item.value}</span>
+                </a>
+              ) : (
+                <span class="contact-page-link contact-page-link--static">
+                  <span class="contact-page-label">{item.label}</span>
+                  <span class="contact-page-value">{item.value}</span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .contact-page-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+    grid-template-columns: 1fr;
+  }
+
+  .contact-page-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 28px 22px;
+    border-top: 1px solid var(--border);
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease),
+      padding var(--dur-hover) var(--ease);
+  }
+
+  .contact-page-link:hover {
+    background-color: var(--bg-soft);
+    padding-left: 30px;
+  }
+
+  .contact-page-link--static:hover {
+    background-color: transparent;
+    padding-left: 22px;
+  }
+
+  .contact-page-label {
+    font-size: 12px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+
+  .contact-page-value {
+    font-size: 17px;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    text-align: right;
+    word-break: break-all;
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .contact-page-link:hover .contact-page-value {
+    color: var(--accent);
+  }
+
+  /* ---------- 微信二维码：默认收起，点击 / hover 才展开 ---------- */
+  .contact-page-link--qr {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .contact-page-link--qr:hover {
+    background-color: transparent;
+    padding-left: 22px;
+  }
+
+  /* 触发按钮：整行可点（键盘 Enter / Space 同样有效） */
+  .qr-toggle {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .qr-toggle:hover .qr-hint {
+    color: var(--accent);
+  }
+
+  .qr-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .qr-hint-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease);
+  }
+
+  .qr-toggle[aria-expanded='true'] .qr-hint-icon {
+    transform: rotate(45deg);
+    border-color: var(--border-hover);
+  }
+
+  /* 折叠容器：默认高度 0（裁掉）+ 不可见；展开时 200ms 展开。
+     ★ 只动容器的高度，绝不给二维码加透明/滤镜过渡 —— 码永远原色原样。 */
+  .qr-panel {
+    max-height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    transition:
+      max-height 0.2s var(--ease),
+      margin-top 0.2s var(--ease),
+      visibility 0s linear 0.2s;
+  }
+
+  .qr-panel.is-open,
+  .contact-page-link--qr:hover .qr-panel,
+  .contact-page-link--qr:focus-within .qr-panel {
+    max-height: 320px;
+    visibility: visible;
+    margin-top: 18px;
+    transition-delay: 0s;
+  }
+
+  /* 白底圆角小卡片（只改容器，不动码本身） */
+  .qr-card {
+    display: inline-block;
+    padding: 8px;
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid rgba(138, 148, 166, 0.22);
+    box-shadow: 0 14px 34px -20px rgba(0, 0, 0, 0.9);
+  }
+
+  /* ★ 二维码原图原色原样：不裁、不改色、不加任何滤镜 */
+  .qr-card img {
+    display: block;
+    width: 136px;
+    height: 136px;
+    object-fit: contain;
+  }
+
+  .qr-tip {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+
+  @media (max-width: 767px) {
+    .contact-page-link {
+      padding: 22px 16px;
+    }
+
+    .contact-page-value {
+      font-size: 15px;
+    }
+  }
+</style>

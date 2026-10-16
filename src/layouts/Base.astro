@@ -1,0 +1,204 @@
+---
+/**
+ * Base.astro —— 所有页面共用的"外壳"
+ * 负责：网页标题、描述、全局样式引用、右上角导航、氛围层（背景呼吸 / 鼠标光晕 / 颗粒噪点）。
+ * 想改网页标签页上的文字，去 src/data/works.js 改 site.pageTitle。
+ * 导航菜单在 src/components/NavBar.astro，菜单项数据在 src/data/works.js 的 navItems。
+ */
+import { site } from '../data/works.js';
+import NavBar from '../components/NavBar.astro';
+import Lightbox from '../components/Lightbox.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = site.pageTitle, description = site.description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <!--
+      最早时机给 <html> 打上 has-js 标记（必须放在最前面）。
+      作用：滚动淡入的"初始隐藏态"只在有 JS 时才生效。
+      JS 没跑起来时，这个类不会加上，内容默认可见 —— 绝不白屏。
+    -->
+    <script is:inline>document.documentElement.classList.add('has-js');</script>
+    <!--
+      51LA 访问统计（用户 ID: 3RW0cfrozM9nB6Aw）
+      脚本由用户在 51la.com 注册时获得 —— 整站 12 页统一统计。
+      数据在 51LA 控制台查看：https://v6.51.la
+      关闭页面级屏蔽：autoTrack + screenRecord 都开启。
+      若日后不想用，删除下面两行 <script> 即可。
+    -->
+    <script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+    <script>LA.init({id:"3RW0cfrozM9nB6Aw",ck:"3RW0cfrozM9nB6Aw",autoTrack:true,hashMode:true,screenRecord:true})</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0a0a0c" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <!-- 氛围层 1：背景呼吸光（纯 CSS） -->
+    <div class="ambient-bg" aria-hidden="true"></div>
+
+    <!-- 氛围层 2：鼠标跟随光晕（位置由页面底部的小段 JS 更新） -->
+    <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+    <!-- 氛围层 2·补：鼠标光点（跟随更紧；悬停可点元素时扩张成圆环） -->
+    <div class="cursor-dot" id="cursorDot" aria-hidden="true">
+      <span class="cursor-dot-label" id="cursorDotLabel"></span>
+    </div>
+
+    <!-- 氛围层 3：极细颗粒噪点（内联 SVG，不下载图片） -->
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="page">
+      <!-- 右上角固定导航（全站共用，当前页自动高亮） -->
+      <NavBar />
+      <slot />
+    </div>
+
+    <!-- 图片灯箱：页面上带 data-lightbox 的图片点它就会放大查看（原生 dialog，无依赖） -->
+    <Lightbox />
+
+    <!--
+      全站共用脚本（原生 JS，无第三方库）—— 放在"外壳"里，每个页面都能用。
+      包含两块：
+        ① 滚动淡入：带 data-reveal 的元素进入视口时加 .is-visible 触发浮现。
+        ② 鼠标光晕 + 光点：跟随鼠标移动（transform，性能好）。
+      - 用 requestAnimationFrame 平滑跟随
+      - 触屏设备 / 关闭动效的系统不启用光晕与光点（但内容照常显示）
+    -->
+    <script>
+      (function () {
+        // ============ 一、滚动淡入（reveal on scroll） ============
+        // 与"触屏/关动效"无关：无论哪种情况，内容都必须看得到。
+        (function reveal() {
+          const els = document.querySelectorAll('[data-reveal]');
+          if (!els.length) return;
+
+          const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          // 关动效 / 浏览器不支持 observer → 直接全部显示，不播动画
+          if (reduce || !('IntersectionObserver' in window)) {
+            els.forEach((el) => el.classList.add('is-visible'));
+            return;
+          }
+
+          const io = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('is-visible');
+                  io.unobserve(entry.target);
+                }
+              });
+            },
+            { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+          );
+          els.forEach((el) => io.observe(el));
+        })();
+
+        // ============ 二、微信二维码：点击 / 键盘才展开 ============
+        // 默认收起（页面上不显示图片），点按钮或按 Enter / Space 才淡入。
+        // ★ 二维码图片本身不做任何滤镜处理（反色会导致大量设备扫不出来）。
+        (function qrToggle() {
+          const buttons = document.querySelectorAll('[data-qr-toggle]');
+          buttons.forEach((btn) => {
+            const id = btn.getAttribute('aria-controls');
+            const panel = id ? document.getElementById(id) : null;
+            if (!panel) return;
+            btn.addEventListener('click', () => {
+              const open = btn.getAttribute('aria-expanded') === 'true';
+              btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+              panel.classList.toggle('is-open', !open);
+            });
+          });
+        })();
+
+        // ============ 三、鼠标光晕 + 光点 ============
+        const glow = document.getElementById('cursorGlow');
+        const dot = document.getElementById('cursorDot');
+        const dotLabel = document.getElementById('cursorDotLabel');
+        if (!glow || !dot) return;
+
+        // 尊重系统"减少动态效果"设置；触屏设备不启用
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const isTouch = window.matchMedia('(hover: none)').matches;
+        if (reduceMotion.matches || isTouch) return;
+
+        let targetX = window.innerWidth / 2;
+        let targetY = window.innerHeight / 3;
+        let glowX = targetX;
+        let glowY = targetY;
+        let dotX = targetX;
+        let dotY = targetY;
+        let rafId: number | null = null;
+
+        function tick() {
+          // 光晕：慢，形成"慢慢飘过去"的滞后感
+          glowX += (targetX - glowX) * 0.08;
+          glowY += (targetY - glowY) * 0.08;
+          // 光点：快，几乎实时跟手
+          dotX += (targetX - dotX) * 0.7;
+          dotY += (targetY - dotY) * 0.7;
+
+          glow!.style.transform = `translate3d(${glowX}px, ${glowY}px, 0)`;
+          // 用 translate(-50%, -50%) 让光点中心始终对准鼠标（尺寸变化也不会偏）
+          dot!.style.transform = `translate3d(${dotX}px, ${dotY}px, 0) translate(-50%, -50%)`;
+
+          const moving =
+            Math.abs(targetX - glowX) > 0.5 ||
+            Math.abs(targetY - glowY) > 0.5 ||
+            Math.abs(targetX - dotX) > 0.5 ||
+            Math.abs(targetY - dotY) > 0.5;
+          rafId = moving ? requestAnimationFrame(tick) : null;
+        }
+
+        window.addEventListener(
+          'pointermove',
+          (e) => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+            document.body.classList.add('cursor-ready');
+            if (rafId === null) rafId = requestAnimationFrame(tick);
+          },
+          { passive: true }
+        );
+
+        // 鼠标离开窗口后，光晕与光点缓缓隐去
+        window.addEventListener('pointerleave', () => {
+          document.body.classList.remove('cursor-ready');
+        });
+
+        // 悬停到"可点击元素"→ 光点扩张成圆环；带 data-cursor 文字的显示该文字
+        const interactive = 'a, button, .card, .section-more, [data-cursor]';
+        function syncDotHover(node: EventTarget | null) {
+          const el = node instanceof Element ? node.closest(interactive) : null;
+          if (!el) {
+            dot!.classList.remove('is-hover', 'is-label');
+            if (dotLabel) dotLabel.textContent = '';
+            return;
+          }
+          const text = el.getAttribute('data-cursor');
+          if (text) {
+            dot!.classList.add('is-hover', 'is-label');
+            if (dotLabel) dotLabel.textContent = text;
+          } else {
+            dot!.classList.add('is-hover');
+            dot!.classList.remove('is-label');
+            if (dotLabel) dotLabel.textContent = '';
+          }
+        }
+        document.addEventListener('pointerover', (e) => syncDotHover(e.target));
+        document.addEventListener('pointerout', (e) => syncDotHover(e.relatedTarget));
+      })();
+    </script>
+  </body>
+</html>

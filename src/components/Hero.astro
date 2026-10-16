@@ -1,0 +1,165 @@
+---
+/**
+ * Hero.astro —— 首页全屏背景区（首屏）
+ * ------------------------------------------------------------
+ *  - 满屏（100vh）铺一张"风景感"背景图，文字压在图上。
+ *  - 背景图：public/hero-bg.png（AI 生成的深色雾气山景，已处理水印）。
+ *  - 图上叠一层深色渐变遮罩，保证白字清晰可读。
+ *  - 背景有极缓慢的明暗"呼吸"，延续全站忧郁氛围。
+ *
+ *  【替换背景图：改这里】想换成自己的照片时，看页面下方 <style> 里的注释。
+ */
+import { site } from '../data/works.js';
+---
+
+<header class="hero" id="top">
+  <!-- 背景图层（真正的图在 CSS 里，方便替换） -->
+  <div class="hero-bg" aria-hidden="true"></div>
+  <!-- 深色渐变遮罩层：让文字在图上清晰可读 -->
+  <div class="hero-overlay" aria-hidden="true"></div>
+
+  <div class="container hero-inner">
+    <p class="hero-eyebrow">PORTFOLIO</p>
+    <h1 class="hero-name">{site.name}</h1>
+    <p class="hero-tagline">{site.tagline}</p>
+    {site.subtitle && <p class="hero-subtitle">{site.subtitle}</p>}
+
+    <!-- 向下滚动提示：跳到首页第一块概览 -->
+    <a class="hero-scroll" href="#overview" aria-label="向下浏览作品">
+      <span>向下浏览</span>
+      <span class="hero-scroll-line" aria-hidden="true"></span>
+    </a>
+  </div>
+</header>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh; /* 手机浏览器地址栏收起后更稳 */
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     背景图层
+     【替换背景图：改这里】
+     —— 想换成自己的照片，把 url('/hero-bg.png') 改成你的图片地址，
+        例如先把照片 hero-bg.jpg 放进 public 文件夹，再改成 url('/hero-bg.jpg')。
+        其它属性（铺满、居中、缓慢呼吸）都不用动。
+     ============================================================ */
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url('/hero-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* 极缓慢的明暗变化，像深夜里的微光起伏 */
+    animation: hero-breathe 16s ease-in-out infinite;
+  }
+
+  @keyframes hero-breathe {
+    0%, 100% { filter: brightness(0.9); }
+    50%      { filter: brightness(1.06); }
+  }
+
+  /* 深色渐变遮罩：从下往上渐深 + 左侧略深，保证左边文字对比度 */
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      linear-gradient(180deg, rgba(10, 10, 12, 0.55) 0%, rgba(10, 10, 12, 0.15) 30%, rgba(10, 10, 12, 0.72) 100%),
+      linear-gradient(90deg, rgba(10, 10, 12, 0.62) 0%, rgba(10, 10, 12, 0.15) 55%, rgba(10, 10, 12, 0) 100%);
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 2;
+    padding-top: 120px; /* 给右上角导航留出空间 */
+    padding-bottom: 100px;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--text-soft);
+    margin-bottom: 28px;
+  }
+
+  .hero-name {
+    font-size: clamp(46px, 12vw, 104px);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    /* 极慢的明暗呼吸，让名字像在微光里浮动 */
+    animation: name-glow var(--breathe) ease-in-out infinite;
+  }
+
+  @keyframes name-glow {
+    0%, 100% { opacity: 0.92; }
+    50%      { opacity: 1; }
+  }
+
+  .hero-tagline {
+    margin-top: 28px;
+    max-width: 30em;
+    font-size: clamp(15px, 2.2vw, 18px);
+    line-height: 1.9;
+    color: var(--text);
+    letter-spacing: 0.03em;
+    /* 文字加一点点投影，进一步保证在图上可读 */
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  }
+
+  .hero-subtitle {
+    margin-top: 14px;
+    font-size: 13px;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-soft);
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+  }
+
+  .hero-scroll {
+    position: absolute;
+    left: var(--side-pad);
+    bottom: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text-soft);
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .hero-scroll:hover {
+    color: var(--accent);
+  }
+
+  .hero-scroll-line {
+    display: block;
+    width: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent-dim), transparent);
+  }
+
+  @media (max-width: 767px) {
+    .hero {
+      min-height: 92svh;
+    }
+
+    .hero-inner {
+      padding-top: 96px;
+    }
+
+    .hero-scroll {
+      left: var(--side-pad);
+      bottom: 28px;
+    }
+  }
+</style>

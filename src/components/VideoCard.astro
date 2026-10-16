@@ -1,0 +1,277 @@
+---
+/**
+ * VideoCard.astro —— 视频卡片
+ * ------------------------------------------------------------
+ *  【两种卡片】
+ *  ① 本地作品（type: 'local'，给了 src）：内嵌 <video> 直接播，
+ *     preload="metadata" —— 只先读一点信息把首帧显示出来，不把整个视频拉下来。
+ *  ② 跳转抖音（type: 'link'，给了 href）：渐变封面 + 抖音图标 +「去抖音看 →」，
+ *     点击在新窗口打开。
+ *  两种卡片左上角都有角标（本地作品 / 抖音）区分。
+ */
+interface Props {
+  title: string;
+  description?: string;
+  duration?: string;
+  gradient?: string;
+  type?: 'local' | 'link';
+  src?: string;    // 本地视频地址（放在 public/videos/ 下）
+  href?: string;   // 跳转地址（抖音等平台）
+  badge?: string;  // 左上角角标文字
+  cta?: string;    // 跳转卡上的行动文字
+}
+
+const {
+  title,
+  description,
+  duration,
+  gradient = 'linear-gradient(145deg, #1c2530 0%, #0f1419 60%, #2a3441 100%)',
+  type = 'local',
+  src,
+  href,
+  badge,
+  cta = '去抖音看',
+  ...rest
+} = Astro.props;
+
+const isLink = type === 'link' && Boolean(href);
+
+// 抖音图标（内联 SVG，不引图标库、不下载图片）
+const DOUYIN_ICON =
+  '<path d="M14 4v10.6a3.6 3.6 0 1 1-3.1-3.57"/><path d="M14 4c.55 2.4 2.3 3.75 4.7 3.95"/>';
+---
+
+{
+  isLink ? (
+    <a
+      class="card video-card video-card--link"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-cursor="去抖音看"
+      {...rest}
+    >
+      <div class="video-cover" style={`background: ${gradient};`}>
+        {badge && <span class="video-badge">{badge}</span>}
+        {duration && <span class="video-duration">{duration}</span>}
+
+        <span class="video-center">
+          <span class="video-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={DOUYIN_ICON} />
+          </span>
+          <span class="video-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M8 5.5v13l11-6.5-11-6.5z" />
+            </svg>
+          </span>
+          <span class="video-cta">{cta} <span aria-hidden="true">→</span></span>
+        </span>
+      </div>
+
+      <div class="video-body">
+        <h3 class="video-title">{title}</h3>
+        {description && <p class="video-desc">{description}</p>}
+        <p class="video-meta">抖音 · 点击跳转</p>
+      </div>
+    </a>
+  ) : (
+    <article class="card video-card video-card--local" {...rest}>
+      <div class="video-cover video-cover--video">
+        {badge && <span class="video-badge">{badge}</span>}
+        {duration && <span class="video-duration">{duration}</span>}
+        <video
+          class="video-el"
+          src={src}
+          preload="metadata"
+          controls
+          playsinline
+          controlsList="nodownload"
+        ></video>
+      </div>
+
+      <div class="video-body">
+        <h3 class="video-title">{title}</h3>
+        {description && <p class="video-desc">{description}</p>}
+        <p class="video-meta">本地作品 · 可直接播放</p>
+      </div>
+    </article>
+  )
+}
+
+<style>
+  .video-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .video-cover {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 封面本身也有个极淡的呼吸，像屏幕在待机 */
+    animation: cover-breathe 14s ease-in-out infinite;
+    /* 悬停时封面轻微放大（只动 transform，不触发重排） */
+    transition: transform 0.6s var(--ease);
+  }
+
+  @keyframes cover-breathe {
+    0%, 100% { filter: brightness(0.86); }
+    50%      { filter: brightness(1); }
+  }
+
+  .video-card:hover .video-cover {
+    animation-play-state: paused;
+    filter: brightness(1.08);
+    transform: scale(1.03);
+  }
+
+  /* ---------- 本地视频：内嵌播放器 ---------- */
+  .video-cover--video {
+    /* 内嵌播放器不做呼吸/放大，避免干扰播放控件 */
+    animation: none;
+    background-color: #000;
+  }
+
+  .video-card:hover .video-cover--video {
+    transform: none;
+    filter: none;
+  }
+
+  .video-el {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-color: #000;
+    display: block;
+  }
+
+  /* ---------- 角标 / 时长 ---------- */
+  .video-badge {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    z-index: 2;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    background: rgba(10, 10, 12, 0.62);
+    border: 1px solid rgba(138, 148, 166, 0.28);
+  }
+
+  .video-duration {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 2;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: rgba(10, 10, 12, 0.62);
+    border: 1px solid rgba(138, 148, 166, 0.18);
+  }
+
+  /* ---------- 跳转卡封面中央：图标 + 播放三角 + 去抖音看 ---------- */
+  .video-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .video-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    color: var(--text);
+    border: 1px solid rgba(232, 234, 237, 0.22);
+    background: rgba(10, 10, 12, 0.35);
+    transition:
+      border-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
+  }
+
+  .video-card:hover .video-icon {
+    border-color: var(--accent);
+    transform: scale(1.08);
+  }
+
+  .video-play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    color: var(--text);
+    background: rgba(10, 10, 12, 0.35);
+    border: 1px solid rgba(232, 234, 237, 0.22);
+    backdrop-filter: blur(2px);
+    transition:
+      background-color var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease),
+      transform var(--dur-hover) var(--ease);
+  }
+
+  .video-card:hover .video-play {
+    background: rgba(138, 148, 166, 0.3);
+    border-color: var(--accent);
+    transform: scale(1.12);
+  }
+
+  .video-cta {
+    font-size: 12px;
+    letter-spacing: var(--tracking-xwide);
+    color: var(--text);
+    opacity: 0.9;
+    transition: color var(--dur-hover) var(--ease);
+  }
+
+  .video-card:hover .video-cta {
+    color: var(--accent);
+  }
+
+  /* ---------- 卡片下半部分 ---------- */
+  .video-body {
+    padding: 20px 20px 22px;
+  }
+
+  .video-title {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text);
+  }
+
+  .video-desc {
+    margin-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: var(--text-soft);
+  }
+
+  .video-meta {
+    margin-top: 14px;
+    font-size: 11px;
+    letter-spacing: var(--tracking-wide);
+    color: var(--text-faint);
+  }
+
+  /* 关闭动效时不做缩放（只保留颜色/边框变化） */
+  @media (prefers-reduced-motion: reduce) {
+    .video-card:hover .video-cover,
+    .video-card:hover .video-play,
+    .video-card:hover .video-icon {
+      transform: none;
+    }
+  }
+</style>
