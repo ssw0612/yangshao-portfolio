@@ -4,7 +4,7 @@
  * ------------------------------------------------------------
  *  【两种卡片】
  *  ① 本地作品（type: 'local'，给了 src）：内嵌 <video> 直接播，
- *     preload="metadata" —— 只先读一点信息把首帧显示出来，不把整个视频拉下来。
+ *     preload="none" —— 完全不预加载（连元数据也不下），点播放才下载。
  *  ② 跳转抖音（type: 'link'，给了 href）：渐变封面 + 抖音图标 +「去抖音看 →」，
  *     点击在新窗口打开。
  *  两种卡片左上角都有角标（本地作品 / 抖音）区分。
@@ -82,7 +82,7 @@ const DOUYIN_ICON =
         <video
           class="video-el"
           src={src}
-          preload="metadata"
+          preload="none"
           controls
           playsinline
           controlsList="nodownload"
