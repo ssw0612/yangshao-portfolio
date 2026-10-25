@@ -200,5 +200,65 @@ const { title = site.pageTitle, description = site.description } = Astro.props;
         document.addEventListener('pointerout', (e) => syncDotHover(e.relatedTarget));
       })();
     </script>
+
+    <!--
+      视频自适应：按屏幕宽度选清晰度（手机 480p / 桌面 720p）
+      + preload="none" 时，视频真正开始下载的时机是「用户点了播放」，
+      所以首屏完全不会因为视频卡住。
+    -->
+    <script>
+      (function () {
+        const videos = Array.from(document.querySelectorAll('video[data-adaptive-src]'));
+        if (!videos.length) return;
+
+        // 1) 按屏幕宽度挑清晰度
+        const pick = (v) => {
+          const raw = v.getAttribute('data-adaptive-src');
+          if (!raw) return;
+          let list;
+          try { list = JSON.parse(raw); } catch { return; }
+          if (!Array.isArray(list) || !list.length) return;
+
+          const w = window.innerWidth;
+          let chosen = list[list.length - 1];
+          for (const s of list) {
+            if (s.maxWidth && w <= s.maxWidth) { chosen = s; break; }
+          }
+          if (chosen && chosen.src && v.getAttribute('data-picked') !== chosen.src) {
+            v.setAttribute('data-picked', chosen.src);
+            v.setAttribute('src', chosen.src);
+            v.load();
+          }
+        };
+
+        videos.forEach(pick);
+        let timer;
+        window.addEventListener('resize', () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => videos.forEach(pick), 200);
+        });
+
+        // 2) 用户真正点播放时，才把 src 挂上（首屏零视频流量）
+        videos.forEach((v) => {
+          const cover = v.closest('.video-cover');
+          const showPoster = () => { if (cover) cover.classList.add('is-playing'); };
+          const hidePoster = () => { if (cover) cover.classList.remove('is-playing'); };
+
+          v.addEventListener('play', showPoster);
+          v.addEventListener('pause', hidePoster);
+          v.addEventListener('ended', hidePoster);
+
+          if (!v.getAttribute('data-adaptive-src')) return;
+          v.removeAttribute('src');
+          v.load(); // 重置为不加载任何资源
+
+          const start = () => {
+            pick(v);
+            v.removeEventListener('play', start);
+          };
+          v.addEventListener('play', start);
+        });
+      })();
+    </script>
   </body>
 </html>

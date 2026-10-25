@@ -177,7 +177,13 @@ export const videos = [
   {
     type: 'local',
     title: '（待命名）',
-    src: '/videos/01-douyin.mp4',
+    src: '/videos/01-douyin-720p.mp4',
+    poster: '/videos/poster.webp',
+    // 多清晰度：按屏幕宽度自动选（≤768px 用 480p，更宽用 720p）
+    sources: [
+      { src: '/videos/01-douyin-480p.mp4', label: '480p', maxWidth: 768 },
+      { src: '/videos/01-douyin-720p.mp4', label: '720p' },
+    ],
     badge: '本地作品',
     duration: '00:58',
     description: '自己的剪辑习作，就存在这个网站里，点开即播。（标题待你补一个）',
@@ -223,22 +229,22 @@ export const quotes = [
 // 横图竖图混在一起也没关系：卡片统一按 4:3 裁切显示，不会被拉变形。
 export const photos = [
   {
-    src: '/images/01-stage.jpg',
+    src: '/images/01-stage.webp',
     title: '薛之谦 · 舞台',
     location: '演唱会现场',
   },
   {
-    src: '/images/02-mingchao.jpg',
+    src: '/images/02-mingchao.webp',
     title: '鸣潮 · 狐耳',
     location: '游戏同人',
   },
   {
-    src: '/images/03-samoyed.jpg',
+    src: '/images/03-samoyed.webp',
     title: '萨摩耶',
     location: '宠物',
   },
   {
-    src: '/images/04-whale.jpg',
+    src: '/images/04-whale.webp',
     title: 'Q 版鲸鱼女仆',
     location: '二次元',
   },
@@ -254,7 +260,7 @@ export const contact = {
   items: [
     { label: '邮箱', value: '3048915146@qq.com', href: 'mailto:3048915146@qq.com' },
     { label: '抖音', value: '77001810337', href: 'https://v.douyin.com/F2SY5GrrZfQ/' },
-    { label: '微信', value: '扫码添加', type: 'qr', qr: '/images/wechat-qr.jpg' },
+    { label: '微信', value: '扫码添加', type: 'qr', qr: '/images/wechat-qr.webp' },
   ],
   // 版权行
   copyright: '© 2026 仰韶 · 个人作品集',
