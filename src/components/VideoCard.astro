@@ -87,15 +87,26 @@ const DOUYIN_ICON =
         {duration && <span class="video-duration">{duration}</span>}
         <video
           class="video-el"
-          src={src}
-          preload="none"
+          preload="metadata"
           controls
           playsinline
           controlsList="nodownload"
           poster={poster}
-          data-adaptive-src={sources && sources.length ? JSON.stringify(sources) : undefined}
-        ></video>
-        {poster && <img class="video-poster" src={poster} alt="" aria-hidden="true" loading="lazy" decoding="async" />}
+        >
+          {sources && sources.length > 0 ? (
+            <>
+              {sources.map((s) => (
+                <source
+                  src={s.src}
+                  type="video/mp4"
+                  media={s.maxWidth ? `(max-width: ${s.maxWidth}px)` : undefined}
+                />
+              ))}
+            </>
+          ) : (
+            <source src={src} type="video/mp4" />
+          )}
+        </video>
       </div>
 
       <div class="video-body">
@@ -156,23 +167,6 @@ const DOUYIN_ICON =
     object-fit: contain;
     background-color: #000;
     display: block;
-  }
-
-  /* 封面图：覆盖在 video 之上，播放时由 JS 隐藏 */
-  .video-poster {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-    transition: opacity 0.25s var(--ease);
-  }
-
-  /* 视频开始播放 → 淡出封面 */
-  .video-cover--video.is-playing .video-poster {
-    opacity: 0;
   }
 
   /* ---------- 角标 / 时长 ---------- */
